@@ -33,7 +33,8 @@ steps:
   displayName: 'Lightweight SAST Scan (Semgrep)'
   continueOnError: true
 
-# 5. Preparação do SonarQube Cloud (Usando a sua nova Service Connection)
+
+# 5. Preparação do SonarQube Cloud (Configuração Manual)
 - task: SonarCloudPrepare@3
   inputs:
     SonarCloud: 'SonarCloud-Connection'
@@ -43,11 +44,16 @@ steps:
     cliProjectKey: 'devsecops-pipeline'
     cliProjectName: 'devsecops-pipeline'
     cliSources: '.'
+    extraProperties: |
+      sonar.organization=ivaridev-sandbox
+      sonar.projectKey=devsecops-pipeline
 
-# 6. Execução do Scan do SonarQube Cloud
+# 6. Execução do Scan do SonarQube Cloud (Forçando o token novo)
 - task: SonarCloudAnalyze@3
   displayName: 'Deep SAST & Code Quality Scan (SonarQube Cloud)'
   continueOnError: true
+  env:
+    SONAR_TOKEN: 'ffaeb771ebd201df028aa9184423838651475bd2' # Insert the token
 
 # 7. Publicação dos resultados no painel do SonarQube Cloud
 - task: SonarCloudPublish@3
