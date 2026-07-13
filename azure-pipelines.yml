@@ -10,19 +10,47 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
-# 1. Install project dependencies for the Juice Shop application
+# 1. Instalar as dependências do projeto Juice Shop
 - script: |
     npm install
   displayName: 'Install Project Dependencies'
 
-# 2. SCA (Software Composition Analysis) scan using native npm audit
+# 2. Análise de SCA (vulnerabilidades em dependências de terceiros)
 - script: |
     npm audit --audit-level=high
   displayName: 'Component Security Scan (SCA)'
-  continueOnError: true # Keeps the pipeline running despite finding flaws (ideal for the intentionally vulnerable Juice Shop)
+  continueOnError: true
 
-# 3. Secret Scanning to detect hardcoded keys, tokens, or passwords
+# 3. Secret Scanning (verificar se há senhas ou chaves expostas no código)
 - script: |
     docker run -v $(System.DefaultWorkingDirectory):/path zricethezaza/gitleaks:latest detect --source=/path --verbose
   displayName: 'Credential Exposure Scan (Secret Scanning)'
   continueOnError: true
+
+# 4. SAST com Semgrep
+- script: |
+    docker run --rm -v "$(System.DefaultWorkingDirectory):/src" returntocorp/semgrep semgrep scan --config=auto
+  displayName: 'Lightweight SAST Scan (Semgrep)'
+  continueOnError: true
+
+# 5. Preparação do SonarQube Cloud (Usando a sua nova Service Connection)
+- task: SonarCloudPrepare@3
+  inputs:
+    SonarCloud: 'SonarCloud-Connection'
+    organization: 'ivaridev-sandbox'
+    scannerMode: 'CLI'
+    configMode: 'manual'
+    cliProjectKey: 'devsecops-pipeline'
+    cliProjectName: 'devsecops-pipeline'
+    cliSources: '.'
+
+# 6. Execução do Scan do SonarQube Cloud
+- task: SonarCloudAnalyze@3
+  displayName: 'Deep SAST & Code Quality Scan (SonarQube Cloud)'
+  continueOnError: true
+
+# 7. Publicação dos resultados no painel do SonarQube Cloud
+- task: SonarCloudPublish@3
+  inputs:
+    pollingTimeoutSec: '300'
+  displayName: 'Publish SonarQube Cloud Quality Gate Results'
