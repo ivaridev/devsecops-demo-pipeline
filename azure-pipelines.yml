@@ -33,21 +33,19 @@ steps:
   displayName: 'Lightweight SAST Scan (Semgrep)'
   continueOnError: true
 
-
-# 5. Preparação do SonarQube Cloud (Modo Autônomo)
-- task: SonarCloudPrepare@3
-  inputs:
-    SonarCloud: 'SonarCloud-Connection'
-    organization: 'ivaridev-sandbox'
-    scannerMode: 'CLI'
-    configMode: 'manual'
-    cliProjectKey: 'devsecops-pipeline'
-    cliProjectName: 'devsecops-pipeline'
-    cliSources: '.'
-    extraProperties: |
-      sonar.host.url=https://sonarcloud.io
-      sonar.organization=ivaridev-sandbox
-      sonar.projectKey=devsecops-pipeline
+# 5. Execução do SonarQube Cloud via Docker (Contornando o bloqueio de binding)
+- script: |
+    docker run --rm \
+      -v "$(System.DefaultWorkingDirectory):/usr/src" \
+      sonarsource/sonar-scanner-cli \
+      -Dsonar.host.url=https://sonarcloud.io \
+      -Dsonar.token=ffaeb771ebd201df028aa9184423838651475bd2 \
+      -Dsonar.organization=ivaridev-sandbox \
+      -Dsonar.projectKey=devsecops-pipeline \
+      -Dsonar.projectName=devsecops-pipeline \
+      -Dsonar.sources=.
+  displayName: 'Deep SAST & Code Quality Scan (SonarQube Cloud)'
+  continueOnError: true
 
 # 6. Execução do Scan do SonarQube Cloud
 - task: SonarCloudAnalyze@3
