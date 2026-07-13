@@ -7,13 +7,22 @@ trigger:
 - main
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: 'ubuntu-latest'
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
+# 1. Install project dependencies for the Juice Shop application
 - script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+    npm install
+  displayName: 'Install Project Dependencies'
+
+# 2. SCA (Software Composition Analysis) scan using native npm audit
+- script: |
+    npm audit --audit-level=high
+  displayName: 'Component Security Scan (SCA)'
+  continueOnError: true # Keeps the pipeline running despite finding flaws (ideal for the intentionally vulnerable Juice Shop)
+
+# 3. Secret Scanning to detect hardcoded keys, tokens, or passwords
+- script: |
+    docker run -v $(System.DefaultWorkingDirectory):/path zricethezaza/gitleaks:latest detect --source=/path --verbose
+  displayName: 'Credential Exposure Scan (Secret Scanning)'
+  continueOnError: true
